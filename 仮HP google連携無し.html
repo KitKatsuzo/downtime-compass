@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#00796b">
+  <title>Downtime Compass｜施術価格・術後記録</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --primary: #00796b;
+      --primary-dark: #00574f;
+      --primary-light: #e0f2f1;
+      --bg: #f3f6f7;
+      --card: #ffffff;
+      --text: #263238;
+      --sub: #607078;
+      --border: #dce3e5;
+      --warning-bg: #fff8e1;
+      --warning-text: #795800;
+      --success-bg: #e8f5e9;
+      --success-text: #256029;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header {
+      padding: 18px 24px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-inner,
+    main {
+      width: min(1440px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    header h1 {
+      margin: 0;
+      color: var(--primary);
+      font-size: 1.5rem;
+    }
+
+    header p {
+      margin: 6px 0 0;
+      color: var(--sub);
+      font-size: .9rem;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, .75fr);
+      gap: 20px;
+      align-items: start;
+      padding: 24px 0 40px;
+    }
+
+    .card {
+      min-width: 0;
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--card);
+      box-shadow: 0 3px 14px rgb(20 50 55 / 5%);
+    }
+
+    .price-card,
+    .comparison-card,
+    .output-card {
+      grid-column: 1 / -1;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      color: var(--primary);
+      font-size: 1.15rem;
+    }
+
+    h3 {
+      margin: 18px 0 8px;
+      font-size: .96rem;
+    }
+
+    p {
+      line-height: 1.6;
+    }
+
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      color: var(--sub);
+      font-size: .88rem;
+      font-weight: 600;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 86px;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus,
+    button:focus-visible {
+      outline: 3px solid rgb(0 121 107 / 18%);
+      outline-offset: 1px;
+      border-color: var(--primary);
+    }
+
+    input[type="checkbox"],
+    input[type="range"] {
+      accent-color: var(--primary);
+    }
+
+    .price-layout {
+      display: grid;
+      grid-template-columns: minmax(280px, .72fr) minmax(0, 1.55fr);
+      gap: 28px;
+      align-items: start;
+    }
+
+    .procedure-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .procedure-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin: 0;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: .86rem;
+      font-weight: 400;
+      cursor: pointer;
+    }
+
+    .procedure-option input {
+      flex: 0 0 auto;
+      width: auto;
+      margin: 3px 0 0;
+    }
+
+    .selection-count {
+      margin-top: 8px;
+      color: var(--sub);
+      font-size: .82rem;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 480px;
+      min-height: 360px;
+      margin-top: 8px;
+    }
+
+    .chart-empty {
+      display: flex;
+      min-height: 160px;
+      align-items: center;
+      justify-content: center;
+      color: var(--sub);
+      text-align: center;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--primary-dark);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .6;
+    }
+
+    .secondary-button {
+      background: #455a64;
+    }
+
+    .secondary-button:hover {
+      background: #33434b;
+    }
+
+    .copy-button {
+      background: #2e7d32;
+    }
+
+    .copy-button:hover {
+      background: #1b5e20;
+    }
+
+    .result {
+      min-height: 60px;
+      margin-top: 12px;
+      padding: 14px;
+      border-radius: 9px;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-size: .9rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .notice {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--warning-bg);
+      color: var(--warning-text);
+      font-size: .82rem;
+      line-height: 1.65;
+    }
+
+    .hint,
+    .small {
+      margin-top: 7px;
+      color: var(--sub);
+      font-size: .8rem;
+      line-height: 1.6;
+    }
+
+    .sources {
+      margin: 10px 0 0 20px;
+      font-size: .78rem;
+      overflow-wrap: anywhere;
+    }
+
+    .sources li {
+      margin-bottom: 5px;
+    }
+
+    .sources a {
+      color: var(--primary-dark);
+    }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .photo-panel {
+      min-width: 0;
+    }
+
+    .photo-panel-title {
+      margin: 0 0 6px;
+      color: var(--sub);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+
+    .photo-box {
+      display: flex;
+      min-height: 190px;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 2px dashed var(--border);
+      border-radius: 9px;
+      background: #f8fafb;
+      color: var(--sub);
+      font-size: .85rem;
+      text-align: center;
+      white-space: pre-wrap;
+    }
+
+    .photo-box img {
+      display: block;
+      width: 100%;
+      height: 240px;
+      object-fit: contain;
+    }
+
+    .compare-group {
+      margin-top: 22px;
+    }
+
+    .compare {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      margin-top: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #f2f4f5;
+    }
+
+    .compare > img,
+    .compare-overlay > img {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .compare-overlay {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      clip-path: inset(0 50% 0 0);
+    }
+
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      color: var(--sub);
+      font-size: .76rem;
+    }
+
+    input[type="range"] {
+      padding: 0;
+    }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .output {
+      min-height: 130px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #f8fafb;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .status {
+      min-height: 1.4em;
+      margin-top: 7px;
+      color: var(--sub);
+      font-size: .8rem;
+    }
+
+    .success-message {
+      background: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .price-card,
+      .comparison-card,
+      .output-card {
+        grid-column: auto;
+      }
+
+      .price-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-wrap {
+        height: 430px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .header-inner,
+      main {
+        width: min(100% - 24px, 1440px);
+      }
+
+      header {
+        padding: 15px 0;
+      }
+
+      header h1 {
+        font-size: 1.25rem;
+      }
+
+      main {
+        gap: 14px;
+        padding-top: 14px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .procedure-list {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-wrap {
+        height: 390px;
+      }
+
+      .photo-grid,
+      .two-column {
+        grid-template-columns: 1fr;
+      }
+
+      .photo-box {
+        min-height: 150px;
+      }
+
+      .photo-box img {
+        height: 190px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>🧭 Downtime Compass</h1>
+      <p>施術価格の参考情報と術後写真の比較メモ</p>
+    </div>
+  </header>
+
+  <main>
+    <!-- 1. 施術・価格チェッカー -->
+    <section class="card price-card">
+      <h2>1. 施術・参考価格チェッカー</h2>
+
+      <div class="price-layout">
+        <div>
+          <label for="region">施術部位</label>
+          <select id="region">
+            <option value="目">目（上顔面）</option>
+            <option value="鼻">鼻（中央顔面）</option>
+            <option value="口元・顎">口元・顎（下顔面）</option>
+            <option value="輪郭">輪郭（フェイスライン）</option>
+            <option value="皮膚・肌質">皮膚・肌質（表層）</option>
+          </select>
+
+          <h3>施術を選択（最大3つ）</h3>
+          <div class="procedure-list" id="procedureList"></div>
+          <p class="selection-count" id="selectionCount" aria-live="polite">
+            0 / 3 件選択中
+          </p>
+
+          <label for="budget">予算・見積もり金額（円）</label>
+          <input
+            id="budget"
+            type="number"
+            min="0"
+            step="1000"
+            inputmode="numeric"
+            placeholder="例：300000"
+          >
+
+          <p class="hint">
+            部位を切り替えても選択は保持されます。複数施術の合計は参考レンジの単純合算です。
+            セット価格、割引、麻酔などの追加費用は反映されません。
+          </p>
+        </div>
+
+        <div>
+          <h3>選択した施術の価格帯（万円）</h3>
+          <div class="chart-wrap" id="chartWrap">
+            <canvas id="priceChart" aria-label="選択した施術の参考価格帯グラフ"></canvas>
+            <div class="chart-empty" id="chartEmpty">
+              施術を選ぶと、価格帯をここに表示します。
+            </div>
+          </div>
+
+          <div class="result" id="priceResult" role="status" aria-live="polite">
+            施術を選択してください。
+          </div>
+
+          <ul class="sources" id="sources"></ul>
+        </div>
+      </div>
+
+      <p class="notice">
+        表示価格は参考情報であり、現在の市場価格を保証するものではありません。
+        価格だけでは、医師の技術・担当者・安全性・保証の良し悪しは判断できません。
+        見積もりでは、施術範囲、担当医、麻酔・薬代などの追加費用、修正条件、術後フォローを
+        クリニックに確認してください。
+      </p>
+
+      <p class="small">
+        「下限帯・中心帯・上限帯」は、登録された価格レンジをグラフ用に3分割した表示です。
+        実際の価格分布、価格帯ごとの症例数、統計的な中央値を示すものではありません。
+      </p>
+    </section>
+
+    <!-- 2. 術後日数と基準写真・ユーザー写真の比較 -->
+    <section class="card comparison-card">
+      <h2>2. 術後写真を基準写真と比較</h2>
+
+      <div class="two-column">
+        <div>
+          <label for="days">ユーザー写真の術後時期</label>
+          <select id="days">
+            <option value="day0">当日</option>
+            <option value="day3">3日後</option>
+            <option value="week1">1週間後</option>
+            <option value="month3">3か月後</option>
+            <option value="month6">半年後</option>
+            <option value="year1">1年後</option>
+            <option value="custom">その他の日数</option>
+          </select>
+
+          <div id="customDaysArea" hidden>
+            <label for="customDays">術後何日目か</label>
+            <input
+              id="customDays"
+              type="number"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              placeholder="例：45"
+            >
+          </div>
+        </div>
+
+        <div>
+          <label for="referenceStage">比較に使う基準写真</label>
+          <select id="referenceStage">
+            <option value="day0">平均　当日.jpg</option>
+            <option value="day3">平均　3日後.jpg</option>
+            <option value="week1">平均　1週間後.jpg</option>
+            <option value="month3">平均　3か月後.jpg</option>
+            <option value="month6">平均　半年後.jpg</option>
+            <option value="year1">平均　1年後.jpg</option>
+          </select>
+          <p class="hint">
+            最初は術後時期に合わせて基準写真を選択しています。必要に応じて変更できます。
+          </p>
+        </div>
+      </div>
+
+      <div class="photo-grid">
+        <div class="photo-panel">
+          <p class="photo-panel-title">選択中の基準写真</p>
+          <div class="photo-box" id="referencePreview">
+            基準写真を読み込み中です
+          </div>
+        </div>
+
+        <div class="photo-panel">
+          <label for="currentPhoto">今回のユーザー写真</label>
+          <div class="photo-box" id="currentPreview">
+            ユーザー写真を選択してください
+          </div>
+          <input id="currentPhoto" type="file" accept="image/*">
+        </div>
+      </div>
+
+      <div class="compare-group">
+        <h3>基準写真とユーザー写真の重ね合わせ</h3>
+        <label for="referenceSlider">重ね合わせ位置</label>
+        <input id="referenceSlider" type="range" min="0" max="100" value="50">
+        <div class="range-labels">
+          <span>基準写真</span>
+          <span>ユーザー写真</span>
+        </div>
+
+        <div class="compare" aria-label="基準写真とユーザー写真の比較">
+          <img id="compareReference" alt="選択中の基準写真">
+          <div class="compare-overlay" id="referenceOverlay">
+            <img id="compareCurrent" alt="今回のユーザー写真">
+          </div>
+        </div>
+      </div>
+
+      <div class="compare-group">
+        <h3>前回と今回の写真の重ね合わせ</h3>
+
+        <div class="photo-grid">
+          <div class="photo-panel">
+            <label for="previousPhoto">前回の写真（任意）</label>
+            <div class="photo-box" id="previousPreview">
+              前回の写真を選択してください
+            </div>
+            <input id="previousPhoto" type="file" accept="image/*">
+          </div>
+
+          <div class="photo-panel">
+            <p class="photo-panel-title">今回の写真</p>
+            <div class="photo-box" id="currentPreviewCopy">
+              今回の写真を選択してください
+            </div>
+          </div>
+        </div>
+
+        <label for="previousSlider">重ね合わせ位置</label>
+        <input id="previousSlider" type="range" min="0" max="100" value="50">
+        <div class="range-labels">
+          <span>前回</span>
+          <span>今回</span>
+        </div>
+
+        <div class="compare" aria-label="前回と今回の写真の比較">
+          <img id="comparePrevious" alt="前回の写真">
+          <div class="compare-overlay" id="previousOverlay">
+            <img id="compareCurrentAgain" alt="今回の写真">
+          </div>
+        </div>
+      </div>
+
+      <p class="small">
+        写真はこのページ内で表示するだけです。サーバーへの送信や保存は行いません。
+        角度、表情、照明、距離が違うと、見た目の違いも生じます。
+      </p>
+
+      <p class="notice">
+        基準写真は比較用の参考画像であり、全員に当てはまる標準・理想・医療的な評価を示すものではありません。
+        写真の比較で施術の良し悪し、治癒の正常・異常、合併症を判定することはできません。
+      </p>
+    </section>
+
+    <!-- 3. 比較メモ作成 -->
+    <section class="card">
+      <h2>3. 写真を見た比較メモ</h2>
+
+      <p class="small">
+        写真の違いを自動認識する機能ではありません。画像を見て気づいた点を入力すると、
+        その内容を比較メモの形式に整えます。
+      </p>
+
+      <label for="observations">基準写真と比べて気づいた見た目の違い</label>
+      <textarea
+        id="observations"
+        placeholder="例：横顔で鼻先の位置が少し違って見える。撮影角度が異なるため判断しにくい。"
+      ></textarea>
+
+      <label for="symptoms">気になる症状・変化（任意）</label>
+      <textarea
+        id="symptoms"
+        placeholder="例：腫れが気になる、痛みが続いている"
+      ></textarea>
+
+      <label for="question">クリニックに確認したいこと（任意）</label>
+      <textarea
+        id="question"
+        placeholder="例：受診したほうがよいか確認したい"
+      ></textarea>
+
+      <label for="clinic">クリニック名（任意）</label>
+      <input id="clinic" type="text" placeholder="例：〇〇クリニック">
+
+      <button id="generateButton" type="button">比較メモ・相談文を作成</button>
+    </section>
+
+    <!-- 4. 出力 -->
+    <section class="card output-card" id="outputCard" hidden>
+      <h2>4. 比較メモ・相談文</h2>
+
+      <h3>比較メモ</h3>
+      <div class="output" id="comparisonText" aria-live="polite"></div>
+
+      <h3>クリニックへの相談文</h3>
+      <div class="output" id="messageText" aria-live="polite"></div>
+
+      <button class="copy-button" id="copyMessage" type="button">
+        相談文をコピー
+      </button>
+      <p class="status" id="copyStatus" role="status" aria-live="polite"></p>
+
+      <p class="notice">
+        作成された文章は入力内容を整理したものです。医療診断や治療方針の提案ではありません。
+        症状が急に悪化した場合や強い不安がある場合は、施術を受けた医療機関へ連絡してください。
+      </p>
+    </section>
+  </main>
+
+  <!-- 価格データ。価格単位は万円。 -->
+  <script type="application/json" id="priceData">
+  [
+    {
+      "category": "目",
+      "procedure": "二重（埋没）",
+      "tiers": {
+        "下限帯": [3, 8],
+        "中心帯": [5, 15],
+        "上限帯": [15, 20]
+      },
+      "sources": [
+        "https://media.misao-ladies.jp/biyou-iryou-hiyou-souba/"
+      ]
+    },
+    {
+      "category": "目",
+      "procedure": "二重（切開）",
+      "tiers": {
+        "下限帯": [20, 25],
+        "中心帯": [25, 35],
+        "上限帯": [35, 40]
+      },
+      "sources": [
+        "https://www.clinicjapan.net/plastic-surgery-japan/"
+      ]
+    },
+    {
+      "category": "目",
+      "procedure": "目頭切開・目尻切開",
+      "range": [15, 35],
+      "sources": [
+        "https://media.misao-ladies.jp/biyou-iryou-hiyou-souba/"
+      ]
+    },
+    {
+      "category": "目",
+      "procedure": "眼瞼下垂",
+      "range": [22.763, 55],
+      "priceNote": "提示された公式料金例を参考にしたレンジです。術式や追加施術により異なります。",
+      "sources": [
+        "https://www.s-b-c.net/eyelid/sekkai/gankenkasui/",
+        "https://www.veriteclinic.or.jp/progress/eyes/ptosis/",
+        "https://www.keisei-cs.com/medical-treatment/drooping-eye.html"
+      ]
+    },
+    {
+      "category": "目",
+      "procedure": "タレ目形成",
+      "range": [20, 55],
+      "priceNote": "単独施術の例と、目尻切開併用の例を含む提示情報に基づく参考レンジです。",
+      "sources": [
+        "https://www.s-b-c.net/eyelid/sekkai/tareme/",
+        "https://www.mizunomori.com/diagnosis/eye/tareme/",
+        "https://www.keisei-cs.com/medical-treatment/drooping-eye.html"
+      ]
+    },
+    {
+      "category": "目",
+      "procedure": "上まぶた脂肪取り",
+      "range": [7.623, 16.2],
+      "priceNote": "提示された価格例に基づく参考レンジです。術式・施術範囲の違いがあるため、個別の見積もりを確認してください。",
+      "sources": [
+        "https://www.s-b-c.net/eyelid/sekkai/gankenkasui/"
+      ]
+    },
+
+    {
+      "category": "鼻",
+      "procedure": "鼻尖形成（だんご鼻）",
+      "range": [15, 80],
+      "sources": [
+        "https://www.clinicjapan.net/japan-cosmetic-surgery-price-list-2026/",
+        "https://www.clinicjapan.net/plastic-surgery-japan/"
+      ]
+    },
+    {
+      "category": "鼻",
+      "procedure": "鼻中隔延長",
+      "range": [80, 200],
+      "sources": [
+        "https://www.clinicjapan.net/plastic-surgery-japan/"
+      ]
+    },
+    {
+      "category": "鼻",
+      "procedure": "プロテーゼ",
+      "range": [30, 80],
+      "sources": [
+        "https://www.clinicjapan.net/plastic-surgery-japan/"
+      ]
+    },
+    {
+      "category": "鼻",
+      "procedure": "小鼻縮小",
+      "range": [15, 80],
+      "sources": [
+        "https://www.clinicjapan.net/japan-cosmetic-surgery-price-list-2026/",
+        "https://www.clinicjapan.net/plastic-surgery-japan/"
+      ]
+    },
+    {
+      "category": "鼻",
+      "procedure": "鼻骨幅寄せ",
+      "range": null,
+      "sources": []
+    },
+
+    {
+      "category": "口元・顎",
+      "procedure": "顎プロテーゼ",
+      "range": [20, 50],
+      "sources": [
+        "https://www.clinicjapan.net/plastic-surgery-japan/"
+      ]
+    },
+    {
+      "category": "口元・顎",
+      "procedure": "オトガイ形成",
+      "range": [20, 50],
+      "sources": [
+        "https://www.clinicjapan.net/plastic-surgery-japan/"
+      ]
+    },
+    {
+      "category": "口元・顎",
+      "procedure": "Eライン調整",
+      "range": null,
+      "sources": []
+    },
+    {
+      "category": "口元・顎",
+      "procedure": "唇のボリューム調整（ヒアルロン酸）",
+      "range": [3, 10],
+      "sources": [
+        "https://media.misao-ladies.jp/biyou-iryou-hiyou-souba/"
+      ]
+    },
+
+    {
+      "category": "輪郭",
+      "procedure": "エラ削り",
+      "range": [80, 200],
+      "sources": [
+        "https://www.clinicjapan.net/plastic-surgery-japan/"
+      ]
+    },
+    {
+      "category": "輪郭",
+      "procedure": "頬骨削り",
+      "range": [80, 200],
+      "sources": [
+        "https://www.clinicjapan.net/plastic-surgery-japan/"
+      ]
+    },
+    {
+      "category": "輪郭",
+      "procedure": "Vライン形成",
+      "range": [80, 200],
+      "sources": [
+        "https://www.clinicjapan.net/plastic-surgery-japan/"
+      ]
+    },
+    {
+      "category": "輪郭",
+      "procedure": "バッカルファット除去",
+      "range": [15, 40],
+      "sources": [
+        "https://www.clinicjapan.net/plastic-surgery-japan/",
+        "https://media.misao-ladies.jp/biyou-iryou-hiyou-souba/"
+      ]
+    },
+
+    {
+      "category": "皮膚・肌質",
+      "procedure": "ヒアルロン酸",
+      "range": [3, 10],
+      "sources": [
+        "https://media.misao-ladies.jp/biyou-iryou-hiyou-souba/"
+      ]
+    },
+    {
+      "category": "皮膚・肌質",
+      "procedure": "ボトックス",
+      "range": [0.4, 3],
+      "sources": [
+        "https://www.clinicjapan.net/ja/seikei-ryokin/",
+        "https://www.clinicjapan.net/how-much-plastic-surgery-japan/"
+      ]
+    },
+    {
+      "category": "皮膚・肌質",
+      "procedure": "糸リフト",
+      "range": [10, 35],
+      "sources": [
+        "https://www.clinicjapan.net/how-much-plastic-surgery-japan/",
+        "https://media.misao-ladies.jp/biyou-iryou-hiyou-souba/"
+      ]
+    },
+    {
+      "category": "皮膚・肌質",
+      "procedure": "脂肪溶解",
+      "range": null,
+      "sources": []
+    }
+  ]
+  </script>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const priceItems = JSON.parse($("priceData").textContent);
+
+    const selectedProcedures = new Set();
+    const photoUrls = {
+      previous: null,
+      current: null
+    };
+
+    let priceChart = null;
+
+    const referenceImages = {
+      day0: {
+        label: "当日",
+        file: "平均　当日.jpg"
+      },
+      day3: {
+        label: "3日後",
+        file: "平均　3日後.jpg"
+      },
+      week1: {
+        label: "1週間後",
+        file: "平均　1週間後.jpg"
+      },
+      month3: {
+        label: "3か月後",
+        file: "平均　3か月後.jpg"
+      },
+      month6: {
+        label: "半年後",
+        file: "平均　半年後.jpg"
+      },
+      year1: {
+        label: "1年後",
+        file: "平均　1年後.jpg"
+      }
+    };
+
+    /*
+      価格が3帯で登録されている施術は、その値を表示します。
+      1つのレンジだけが登録されている施術は、グラフ表示用に3等分します。
+      3等分は表示上の区切りであり、実際の価格分布ではありません。
+    */
+    function getPriceTiers(item) {
+      if (item.tiers) {
+        return Object.entries(item.tiers);
+      }
+
+      if (!item.range) {
+        return [];
+      }
+
+      const min = item.range[0];
+      const max = item.range[1];
+      const step = (max - min) / 3;
+      const split1 = Number((min + step).toFixed(2));
+      const split2 = Number((min + step * 2).toFixed(2));
+
+      return [
+        ["下限帯", [min, split1]],
+        ["中心帯", [split1, split2]],
+        ["上限帯", [split2, max]]
+      ];
+    }
+
+    function getSelectedProcedures() {
+      return [...selectedProcedures].map(index => ({
+        index,
+        item: priceItems[index]
+      }));
+    }
+
+    function formatManYen(value) {
+      return Number(value).toLocaleString("ja-JP", {
+        maximumFractionDigits: 2
+      });
+    }
+
+    function renderProcedureOptions() {
+      const currentCategory = $("region").value;
+      const list = $("procedureList");
+      list.replaceChildren();
+
+      priceItems.forEach((item, index) => {
+        if (item.category !== currentCategory) {
+          return;
+        }
+
+        const label = document.createElement("label");
+        label.className = "procedure-option";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = selectedProcedures.has(index);
+
+        const name = document.createElement("span");
+        name.textContent = item.procedure +
+          (getPriceTiers(item).length === 0 ? "（価格データ未登録）" : "");
+
+        checkbox.addEventListener("change", () => {
+          const isNewSelection =
+            checkbox.checked && !selectedProcedures.has(index);
+
+          if (isNewSelection && selectedProcedures.size >= 3) {
+            checkbox.checked = false;
+            alert("施術は最大3つまで選択できます。");
+            return;
+          }
+
+          if (checkbox.checked) {
+            selectedProcedures.add(index);
+          } else {
+            selectedProcedures.delete(index);
+          }
+
+          updatePriceView();
+        });
+
+        label.append(checkbox, name);
+        list.appendChild(label);
+      });
+
+      updatePriceView();
+    }
+
+    function renderSources(chosen) {
+      const sourceList = $("sources");
+      sourceList.replaceChildren();
+
+      const uniqueSources = [
+        ...new Set(chosen.flatMap(({ item }) => item.sources || []))
+      ];
+
+      if (uniqueSources.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "選択した施術の出典情報は登録されていません。";
+        sourceList.appendChild(li);
+        return;
+      }
+
+      uniqueSources.forEach(url => {
+        const li = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = url;
+        li.appendChild(link);
+        sourceList.appendChild(li);
+      });
+    }
+
+    function renderPriceChart(chosen) {
+      const rows = [];
+
+      chosen.forEach(({ item }) => {
+        getPriceTiers(item).forEach(([tierName, range]) => {
+          rows.push({
+            label: `${item.procedure}（${tierName}）`,
+            range
+          });
+        });
+      });
+
+      if (priceChart) {
+        priceChart.destroy();
+        priceChart = null;
+      }
+
+      const chartWrap = $("chartWrap");
+      const chartEmpty = $("chartEmpty");
+      const canvas = $("priceChart");
+
+      if (rows.length === 0) {
+        canvas.hidden = true;
+        chartEmpty.hidden = false;
+        chartWrap.style.height = "160px";
+        return;
+      }
+
+      canvas.hidden = false;
+      chartEmpty.hidden = true;
+
+      const height = Math.max(390, rows.length * 52);
+      chartWrap.style.height = `${height}px`;
+
+      const maxRangeValue = Math.max(
+        ...rows.map(row => row.range[1])
+      );
+
+      priceChart = new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels: rows.map(row => row.label),
+          datasets: [{
+            label: "参考価格帯（万円）",
+            data: rows.map(row => row.range),
+            backgroundColor: "rgba(0, 121, 107, 0.62)",
+            borderColor: "#00796b",
+            borderWidth: 1,
+            borderRadius: 5,
+            barThickness: 26
+          }]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              type: "linear",
+              beginAtZero: true,
+              suggestedMax: maxRangeValue * 1.15,
+              title: {
+                display: true,
+                text: "万円"
+              }
+            },
+            y: {
+              ticks: {
+                autoSkip: false
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label(context) {
+                  const value = context.raw;
+                  return `${formatManYen(value[0])}〜${formatManYen(value[1])}万円`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateBudgetResult(chosen) {
+      const result = $("priceResult");
+
+      if (chosen.length === 0) {
+        result.textContent = "施術を1つ以上選択してください。";
+        return;
+      }
+
+      const priced = chosen.filter(({ item }) =>
+        getPriceTiers(item).length > 0
+      );
+
+      const unpriced = chosen.filter(({ item }) =>
+        getPriceTiers(item).length === 0
+      );
+
+      $("selectionCount").textContent =
+        `${chosen.length} / 3 件選択中`;
+
+      if (priced.length === 0) {
+        result.textContent =
+          "選択した施術の参考価格データは未登録です。金額の比較はできません。";
+        return;
+      }
+
+      const minTotal = priced.reduce((total, { item }) => {
+        const tiers = getPriceTiers(item);
+        const itemMin = Math.min(...tiers.map(([, range]) => range[0]));
+        return total + itemMin;
+      }, 0);
+
+      const maxTotal = priced.reduce((total, { item }) => {
+        const tiers = getPriceTiers(item);
+        const itemMax = Math.max(...tiers.map(([, range]) => range[1]));
+        return total + itemMax;
+      }, 0);
+
+      let message =
+        `登録済み施術の合計参考レンジ：${formatManYen(minTotal)}〜${formatManYen(maxTotal)}万円`;
+
+      if (unpriced.length > 0) {
+        const names = unpriced.map(({ item }) => item.procedure).join("、");
+        message += `\n価格データ未登録：${names}`;
+        message += "\n一部の施術が未登録のため、合計レンジは登録済み施術分のみです。";
+      }
+
+      const rawBudget = $("budget").value;
+
+      if (!rawBudget) {
+        message += "\n予算・見積もり金額を入力すると、登録済みレンジと比較します。";
+        result.textContent = message;
+        return;
+      }
+
+      const budgetYen = Number(rawBudget);
+
+      if (!Number.isFinite(budgetYen) || budgetYen < 0) {
+        result.textContent = "予算・見積もり金額を正しく入力してください。";
+        return;
+      }
+
+      const budgetMan = budgetYen / 10000;
+      message += `\n入力額：${formatManYen(budgetMan)}万円`;
+
+      if (unpriced.length > 0) {
+        message += "\n未登録施術が含まれるため、全施術合計との判定はできません。";
+      } else if (budgetMan < minTotal) {
+        message += "\n\n【登録された参考レンジを下回っています】";
+        message += "\n価格だけでは、その理由や安全性は判断できません。施術範囲、担当医、麻酔・薬代などの追加費用、修正条件、術後フォローが見積もりに含まれるか確認してください。";
+      } else if (budgetMan > maxTotal) {
+        message += "\n\n【登録された参考レンジを上回っています】";
+        message += "\n高額であることだけでは技術・安全性・保証の良し悪しは判断できません。価格の内訳、追加オプションの必要性、保証内容を確認し、必要なら複数の医療機関で説明を受けてください。";
+      } else {
+        message += "\n\n【登録された参考レンジ内です】";
+        message += "\n参考レンジ内であることは、施術の安全性や結果を保証するものではありません。担当医、施術内容、追加費用、修正条件、術後フォローを確認してください。";
+      }
+
+      result.textContent = message;
+    }
+
+    function updatePriceView() {
+      const chosen = getSelectedProcedures();
+
+      renderPriceChart(chosen);
+      renderSources(chosen);
+      updateBudgetResult(chosen);
+    }
+
+    $("region").addEventListener("change", renderProcedureOptions);
+    $("budget").addEventListener("input", updatePriceView);
+
+    renderProcedureOptions();
+
+    function imagePath(fileName) {
+      return "assets/reference/" + encodeURIComponent(fileName);
+    }
+
+    function showReferenceImage() {
+      const stage = $("referenceStage").value;
+      const reference = referenceImages[stage];
+      const path = imagePath(reference.file);
+      const testImage = new Image();
+
+      $("referencePreview").textContent = "基準写真を読み込み中です";
+      $("compareReference").removeAttribute("src");
+
+      testImage.onload = () => {
+        $("compareReference").src = path;
+
+        const previewImage = document.createElement("img");
+        previewImage.src = path;
+        previewImage.alt = `術後${reference.label}の基準写真`;
+        $("referencePreview").replaceChildren(previewImage);
+      };
+
+      testImage.onerror = () => {
+        $("referencePreview").textContent =
+          `画像が見つかりません。\nassets/reference/${reference.file} を確認してください。`;
+      };
+
+      testImage.src = path;
+    }
+
+    function syncReferenceToDays() {
+      const daysValue = $("days").value;
+
+      if (daysValue !== "custom") {
+        $("referenceStage").value = daysValue;
+        showReferenceImage();
+      }
+    }
+
+    $("referenceStage").addEventListener("change", showReferenceImage);
+    $("days").addEventListener("change", () => {
+      $("customDaysArea").hidden = $("days").value !== "custom";
+      syncReferenceToDays();
+    });
+
+    showReferenceImage();
+
+    function setPhotoPreview(inputId, previewId, compareIds, key) {
+      $(inputId).addEventListener("change", event => {
+        const file = event.target.files && event.target.files[0];
+
+        if (!file) {
+          return;
+        }
+
+        if (!file.type.startsWith("image/")) {
+          alert("画像ファイルを選択してください。");
+          event.target.value = "";
+          return;
+        }
+
+        if (photoUrls[key]) {
+          URL.revokeObjectURL(photoUrls[key]);
+        }
+
+        const url = URL.createObjectURL(file);
+        photoUrls[key] = url;
+
+        const previewImage = document.createElement("img");
+        previewImage.src = url;
+        previewImage.alt = "選択した写真のプレビュー";
+        $(previewId).replaceChildren(previewImage);
+
+        compareIds.forEach(id => {
+          $(id).src = url;
+        });
+
+        if (key === "current") {
+          const duplicatePreview = document.createElement("img");
+          duplicatePreview.src = url;
+          duplicatePreview.alt = "今回の写真";
+          $("currentPreviewCopy").replaceChildren(duplicatePreview);
+        }
+      });
+    }
+
+    setPhotoPreview(
+      "currentPhoto",
+      "currentPreview",
+      ["compareCurrent", "compareCurrentAgain"],
+      "current"
+    );
+
+    setPhotoPreview(
+      "previousPhoto",
+      "previousPreview",
+      ["comparePrevious"],
+      "previous"
+    );
+
+    $("referenceSlider").addEventListener("input", event => {
+      const userPercent = Number(event.target.value);
+      $("referenceOverlay").style.clipPath =
+        `inset(0 ${100 - userPercent}% 0 0)`;
+    });
+
+    $("previousSlider").addEventListener("input", event => {
+      const currentPercent = Number(event.target.value);
+      $("previousOverlay").style.clipPath =
+        `inset(0 ${100 - currentPercent}% 0 0)`;
+    });
+
+    function getDaysText() {
+      const selectedValue = $("days").value;
+
+      if (selectedValue !== "custom") {
+        return referenceImages[selectedValue].label;
+      }
+
+      const customDays = $("customDays").value;
+
+      if (customDays === "" || Number(customDays) < 0) {
+        $("customDays").focus();
+        return null;
+      }
+
+      return `術後${customDays}日目`;
+    }
+
+    $("generateButton").addEventListener("click", () => {
+      const daysText = getDaysText();
+
+      if (!daysText) {
+        return;
+      }
+
+      const selected = referenceImages[$("referenceStage").value];
+      const observations = $("observations").value.trim();
+      const symptoms = $("symptoms").value.trim();
+      const question = $("question").value.trim();
+      const clinic = $("clinic").value.trim();
+
+      const comparisonLines = [
+        "【基準写真との比較メモ】",
+        `比較対象：術後${selected.label}の基準写真`,
+        `ユーザー写真の時期：術後${daysText}`,
+        "",
+        "【入力された見た目の違い】",
+        observations || "（違いの記入なし）",
+        "",
+        "【比較時の注意】",
+        "撮影角度・表情・照明・距離の違いが見た目に影響している可能性があります。",
+        "このメモは入力内容を整えたもので、写真の自動解析や医療的な評価・診断ではありません。"
+      ];
+
+      const selectedProceduresText = getSelectedProcedures()
+        .map(({ item }) => item.procedure)
+        .join("、") || "（未選択）";
+
+      const messageLines = [
+        clinic ? `${clinic} ご担当者様` : "ご担当者様",
+        "",
+        "お世話になっております。施術後の経過について相談させてください。",
+        "",
+        `施術内容：${selectedProceduresText}`,
+        `経過日数：術後${daysText}`,
+        `気になる症状・変化：${symptoms || "（未入力）"}`,
+        `確認したいこと：${question || "（未入力）"}`,
+        `写真を見て気づいたこと：${observations || "（未入力）"}`,
+        "",
+        "必要であれば経過写真をお送りします。",
+        "ご確認のほど、よろしくお願いいたします。"
+      ];
+
+      $("comparisonText").textContent = comparisonLines.join("\n");
+      $("messageText").textContent = messageLines.join("\n");
+      $("outputCard").hidden = false;
+      $("copyStatus").textContent = "";
+      $("outputCard").scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    });
+
+    $("copyMessage").addEventListener("click", async () => {
+      const status = $("copyStatus");
+      const text = $("messageText").textContent;
+
+      try {
+        await navigator.clipboard.writeText(text);
+        status.textContent = "相談文をコピーしました。";
+      } catch {
+        const temporaryTextarea = document.createElement("textarea");
+        temporaryTextarea.value = text;
+        temporaryTextarea.style.position = "fixed";
+        temporaryTextarea.style.opacity = "0";
+        document.body.appendChild(temporaryTextarea);
+        temporaryTextarea.select();
+
+        const copied = document.execCommand("copy");
+        temporaryTextarea.remove();
+
+        status.textContent = copied
+          ? "相談文をコピーしました。"
+          : "コピーできませんでした。文章を選択してコピーしてください。";
+      }
+    });
+
+    window.addEventListener("beforeunload", () => {
+      Object.values(photoUrls).forEach(url => {
+        if (url) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
